@@ -853,7 +853,30 @@ class SliverReorderableListState extends State<SliverReorderableList>
 
   void _dragEnd(_DragInfo item) {
     setState(() {
-      if (_insertIndex == item.index) {
+      if (_insertIndex! - item.index == 1) {
+        // When the item is dragged just a little bit without ever swapping
+        // positions with another item, then _insertIndex and item.index are
+        // the same.
+        //
+        // When the item is dragged down enough to swap positions with another
+        // item but then returned to its original spot, the value of
+        // _insertIndex depends where it was dropped:
+        //
+        //   - if it is dropped while below (in pixels) its original position,
+        //     then _insertIndex will be set to item.index + 1
+        //     (see https://github.com/flutter/flutter/issues/24786).
+        //     In this case, _finalDropPosition.dy will be greater than it
+        //     should be -- the same as if it had been dropped one item below.
+        //
+        //   - BUT, if it is dropped while above its original position, then
+        //     _insertIndex is equal to item.index, and _finalDropPosition.dy
+        //     will be unchanged from its original position (this is correct
+        //     behavior).
+        //
+        // When the item is swapped with the item below it, then _insertIndex
+        // is set to item.index + 2, and everything works as expected.
+        _finalDropPosition =  _itemOffsetAt(_insertIndex! - 1);
+      } else if (_insertIndex == item.index) {
         _finalDropPosition = _itemOffsetAt(_insertIndex!);
       } else if (_reverse) {
         if (_insertIndex! >= _items.length) {
